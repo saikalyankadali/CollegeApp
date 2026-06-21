@@ -21,33 +21,22 @@ Frontend for CollegeApp — an Angular single-page application for managing stud
 
 ## Project Structure
 
+```
 src/app/
-
 ├── components/
-
-│   ├── login/            # Login page
-
-│   └── student-list/     # Student list with create, edit, delete
-
+│   ├── login/                  # Login page
+│   └── student-list/           # Student list with create, edit, delete
 ├── services/
-
-│   ├── auth.service.ts   # Login, token storage, session state
-
-│   └── student.service.ts# Student CRUD calls
-
+│   ├── auth.service.ts         # Login, token storage, session state
+│   └── student.service.ts      # Student CRUD calls
 ├── interceptors/
-
-│   └── auth.interceptor.ts  # Attaches the Bearer token
-
+│   └── auth.interceptor.ts     # Attaches the Bearer token
 ├── guards/
-
-│   └── auth.guard.ts     # Protects authenticated routes
-
-├── models/               # Student, login, and APIResponse interfaces
-
-├── app.config.ts         # App providers (router, http, interceptor)
-
-└── app.routes.ts         # Route definitions
+│   └── auth.guard.ts           # Protects authenticated routes
+├── models/                     # Student, login, and APIResponse interfaces
+├── app.config.ts               # App providers (router, http, interceptor)
+└── app.routes.ts               # Route definitions
+```
 
 ## API Integration
 
