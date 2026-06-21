@@ -11,11 +11,13 @@ using CollegeApp.Data;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using CollegeApp.Data.Repository;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CollegeApp.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class StudentController : ControllerBase
     {
         private readonly ILogger<StudentController> _myLogger;
@@ -60,6 +62,7 @@ namespace CollegeApp.Controllers
         }
 
         [HttpGet("Get/{id}", Name = "GetStudentById")]
+        [AllowAnonymous] // allow any anonymous person can access
         public async Task<ActionResult> GetStudentByIdAsync(int id)
         {
             var student = await _studentRepository.GetStudentByIdAsync(student => student.Id == id);

@@ -2,12 +2,16 @@
 using CollegeApp.Data;
 using CollegeApp.Data.Repository;
 using CollegeApp.Logger;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using System.Text;
 
 var corsPolicyName = "CollegeAppPolicy";
 var builder = WebApplication.CreateBuilder(args);
+var key = Encoding.ASCII.GetBytes(builder.Configuration.GetValue<string>("JWTSecret"));
 builder.Services.AddDbContext<CollegeDBContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("CollegeAppConnectionString"));
@@ -59,6 +63,23 @@ builder.Services.AddCors(options => options.AddPolicy(corsPolicyName, policy =>
     //Allow all origins
     policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
 }));
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+});
 
 var app = builder.Build();
 
