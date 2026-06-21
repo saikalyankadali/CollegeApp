@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Net;
 
 namespace CollegeApp.Controllers
 {
@@ -21,11 +22,16 @@ namespace CollegeApp.Controllers
         }
 
         [HttpPost]
-        public ActionResult Login(LoginDTO login)
+        public APIResponse Login(LoginDTO login)
         {
+            var apiResponse = new APIResponse();
+
             if (!ModelState.IsValid)
             {
-                return BadRequest("Please provide username and password");
+                apiResponse.Status = false;
+                apiResponse.StatusCode = HttpStatusCode.BadRequest;
+                apiResponse.Errors.Add("Please provide username and password");
+                return apiResponse;
             }
 
             if (login.UserName == "Admin" && login.Password == "Admin123")
@@ -36,24 +42,28 @@ namespace CollegeApp.Controllers
                 {
                     Subject = new ClaimsIdentity(new Claim[]
                     {
-                        //Username
                         new Claim(ClaimTypes.Name, login.UserName),
-                        //Role
                         new Claim(ClaimTypes.Role, "Admin")
                     }),
                     Expires = DateTime.Now.AddHours(1),
                     SigningCredentials = new(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha512Signature)
                 };
+
                 var token = tokenHandler.CreateToken(tokenDescriptor);
                 var tokenGenerated = tokenHandler.WriteToken(token);
                 LoginResponseDTO response = new LoginResponseDTO() { UserName = login.UserName };
                 response.Token = tokenGenerated;
-                return Ok(response);
+
+                apiResponse.Status = true;
+                apiResponse.StatusCode = HttpStatusCode.OK;
+                apiResponse.Data = response;
+                return apiResponse;
             }
-            else
-            {
-                return Ok("Invalid Credintials");
-            }
+
+            apiResponse.Status = false;
+            apiResponse.StatusCode = HttpStatusCode.Unauthorized;
+            apiResponse.Errors.Add("Invalid Credentials");
+            return apiResponse;
         }
     }
 }
