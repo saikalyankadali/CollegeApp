@@ -11,13 +11,13 @@ namespace CollegeApp.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class RolePrivilegePrivilegeController : ControllerBase
+    public class RolePrivilegeController : ControllerBase
     {
         private readonly IMapper _mapper;
         private readonly ICollegeRepository<RolePrivilege> _rolePrivilegeRepository;
         private APIResponse _apiResponse;
 
-        public RolePrivilegePrivilegeController(IMapper mapper, ICollegeRepository<RolePrivilege> rolePrivilegeRepository)
+        public RolePrivilegeController(IMapper mapper, ICollegeRepository<RolePrivilege> rolePrivilegeRepository)
         {
             this._mapper = mapper;
             this._rolePrivilegeRepository = rolePrivilegeRepository;

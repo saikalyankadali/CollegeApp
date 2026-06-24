@@ -1,6 +1,6 @@
 ﻿using CollegeApp.Models;
+using CollegeApp.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -16,13 +16,16 @@ namespace CollegeApp.Controllers
     public class LoginController : ControllerBase
     {
         private readonly IConfiguration _config;
-        public LoginController(IConfiguration config)
+        private readonly IUserService _userService;
+
+        public LoginController(IConfiguration config, IUserService userService)
         {
             _config = config;
+            _userService = userService;
         }
 
         [HttpPost]
-        public APIResponse Login(LoginDTO login)
+        public async Task<APIResponse> Login(LoginDTO login)
         {
             var apiResponse = new APIResponse();
 
@@ -34,35 +37,48 @@ namespace CollegeApp.Controllers
                 return apiResponse;
             }
 
-            if (login.UserName == "Admin" && login.Password == "Admin123")
+            var user = await _userService.GetUserForLoginAsync(login.UserName);
+
+            // PBKDF2 verification using the stored hash + salt — NOT BCrypt
+            bool isValid =
+                user != null
+                && user.IsActive
+                && !user.IsDeleted
+                && _userService.VerifyPassword(login.Password, user.Password, user.PasswordSalt);
+
+            if (!isValid)
             {
-                var key = Encoding.ASCII.GetBytes(_config.GetValue<string>("JWTSecret"));
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var tokenDescriptor = new SecurityTokenDescriptor()
-                {
-                    Subject = new ClaimsIdentity(new Claim[]
-                    {
-                        new Claim(ClaimTypes.Name, login.UserName),
-                        new Claim(ClaimTypes.Role, "Admin")
-                    }),
-                    Expires = DateTime.Now.AddHours(1),
-                    SigningCredentials = new(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha512Signature)
-                };
-
-                var token = tokenHandler.CreateToken(tokenDescriptor);
-                var tokenGenerated = tokenHandler.WriteToken(token);
-                LoginResponseDTO response = new LoginResponseDTO() { UserName = login.UserName };
-                response.Token = tokenGenerated;
-
-                apiResponse.Status = true;
-                apiResponse.StatusCode = HttpStatusCode.OK;
-                apiResponse.Data = response;
+                apiResponse.Status = false;
+                apiResponse.StatusCode = HttpStatusCode.Unauthorized;
+                apiResponse.Errors.Add("Invalid Credentials");
                 return apiResponse;
             }
 
-            apiResponse.Status = false;
-            apiResponse.StatusCode = HttpStatusCode.Unauthorized;
-            apiResponse.Errors.Add("Invalid Credentials");
+            var key = Encoding.ASCII.GetBytes(_config.GetValue<string>("JWTSecret"));
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var tokenDescriptor = new SecurityTokenDescriptor()
+            {
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.Role, user.RoleName)
+                }),
+                Expires = DateTime.Now.AddHours(1),
+                SigningCredentials = new(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha512Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenGenerated = tokenHandler.WriteToken(token);
+
+            LoginResponseDTO response = new LoginResponseDTO
+            {
+                UserName = user.Username,
+                Token = tokenGenerated
+            };
+
+            apiResponse.Status = true;
+            apiResponse.StatusCode = HttpStatusCode.OK;
+            apiResponse.Data = response;
             return apiResponse;
         }
     }

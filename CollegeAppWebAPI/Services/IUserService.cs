@@ -1,4 +1,5 @@
-﻿using CollegeApp.Models;
+﻿using CollegeApp.Data;
+using CollegeApp.Models;
 
 namespace CollegeApp.Services
 {
@@ -10,6 +11,7 @@ namespace CollegeApp.Services
         Task<UserReadonlyDTO> GetUserByUsernameAsync(string username);
         Task<bool> UpdateUserAsync(UserDTO dto);
         Task<bool> DeleteUser(int userId);
-        (string PasswordHash, string Salt) CreatePasswordHashWithSalt(string password);
+        Task<LoginUserResult?> GetUserForLoginAsync(string username);
+        bool VerifyPassword(string enteredPassword, string storedHash, string storedSalt);
     }
 }

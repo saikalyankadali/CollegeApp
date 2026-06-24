@@ -1,6 +1,7 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { LoginResponse } from '../models/login.model';
 import { ApiResponse } from '../models/api-response.model';
@@ -9,8 +10,12 @@ import { ApiResponse } from '../models/api-response.model';
 export class AuthService {
   private tokenKey = 'jwt_token';
   private userKey = 'user_name';
-  isLoggedIn = signal<boolean>(!!this.getToken());
-  userName = signal<string | null>(localStorage.getItem(this.userKey));
+
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
+
+  isLoggedIn = signal<boolean>(this.isBrowser && !!this.getToken());
+  userName = signal<string | null>(this.isBrowser ? localStorage.getItem(this.userKey) : null);
 
   constructor(private http: HttpClient) {}
 
@@ -19,8 +24,7 @@ export class AuthService {
       .post<ApiResponse<LoginResponse>>(`${environment.apiUrl}/Login`, { userName, password })
       .pipe(
         tap((res) => {
-          // Only store credentials on logical success — bad creds come back as HTTP 200 + status:false
-          if (res.status && res.data?.token) {
+          if (res.status && res.data?.token && this.isBrowser) {
             localStorage.setItem(this.tokenKey, res.data.token);
             localStorage.setItem(this.userKey, res.data.userName);
             this.isLoggedIn.set(true);
@@ -31,13 +35,15 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.userKey);
+    if (this.isBrowser) {
+      localStorage.removeItem(this.tokenKey);
+      localStorage.removeItem(this.userKey);
+    }
     this.isLoggedIn.set(false);
     this.userName.set(null);
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
+    return this.isBrowser ? localStorage.getItem(this.tokenKey) : null;
   }
 }
